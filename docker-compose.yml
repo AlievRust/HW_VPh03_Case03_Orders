@@ -1,4 +1,6 @@
+# Учебный контур запускается одной командой и не требует локальной установки БД.
 services:
+  # Единственная точка входа для frontend и внутренних веб-сервисов.
   nginx:
     image: nginx:1.27-alpine
     container_name: orders-nginx
@@ -15,6 +17,7 @@ services:
       - private
     restart: unless-stopped
 
+  # Порт не публикуется: база доступна только внутри private-сети.
   postgres:
     image: postgres:17-alpine
     container_name: orders-postgres
@@ -28,6 +31,7 @@ services:
       - private
     restart: unless-stopped
 
+  # Веб-интерфейс администрирования БД доступен через Nginx по /pgadmin/.
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: orders-pgadmin
@@ -45,6 +49,8 @@ services:
       - private
     restart: unless-stopped
 
+  # Учебный HTTP Registry для образов будущего backend.
+  # В production этот сервис должен работать через TLS.
   registry:
     image: registry:2
     container_name: orders-registry
@@ -62,6 +68,7 @@ services:
       - public
     restart: unless-stopped
 
+  # Обновляет только контейнеры с меткой Watchtower.
   watchtower:
     image: containrrr/watchtower:1.7.1
     container_name: orders-watchtower
@@ -86,12 +93,15 @@ services:
   #   restart: unless-stopped
 
 networks:
+  # Сюда подключены сервисы, которым нужен внешний HTTP-доступ.
   public:
     name: orders_public
+  # Флаг internal блокирует прямой выход этой сети наружу.
   private:
     name: orders_private
     internal: true
 
+# Volumes сохраняют данные при пересоздании контейнеров.
 volumes:
   postgres_data:
   pgadmin_data:
