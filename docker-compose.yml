@@ -1,0 +1,98 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: orders-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      pgadmin:
+        condition: service_started
+    networks:
+      - public
+      - private
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: orders-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - private
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: orders-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      SCRIPT_NAME: /pgadmin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_started
+    networks:
+      - public
+      - private
+    restart: unless-stopped
+
+  registry:
+    image: registry:2
+    container_name: orders-registry
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Docker Registry
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+    ports:
+      - "${REGISTRY_PORT:-5000}:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+      - ./registry/auth:/auth:ro
+    networks:
+      - public
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    container_name: orders-watchtower
+    command: --label-enable --cleanup --interval 300
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+  # backend:
+  #   image: ${REGISTRY_HOST}:${REGISTRY_PORT}/orders-backend:latest
+  #   container_name: orders-backend
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_started
+  #   networks:
+  #     - public
+  #     - private
+  #   labels:
+  #     com.centurylinklabs.watchtower.enable: "true"
+  #   restart: unless-stopped
+
+networks:
+  public:
+    name: orders_public
+  private:
+    name: orders_private
+    internal: true
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  registry_data:
