@@ -84,6 +84,20 @@ docker compose version
 
 Compose-файл не устанавливает Docker автоматически. Установка Docker выполняется отдельно на хостовой машине.
 
+### Оболочка команд
+
+Примеры в README приведены для Windows PowerShell. На Linux-VPS используйте эквиваленты:
+
+| Windows PowerShell | Linux/macOS (bash) |
+| --- | --- |
+| `Copy-Item .env.example .env` | `cp .env.example .env` |
+| `\| Out-File -Encoding ascii файл` | `> файл` |
+| `Test-Path файл` | `test -f файл && echo ok` |
+| `Invoke-WebRequest URL -SkipHttpErrorCheck` | `curl -i URL` |
+| `"${PWD}\путь"` | `"$(pwd)/путь"` |
+
+Команды `docker`, `docker compose`, `docker login`, `docker tag`, `docker push` и `docker pull` одинаковы в обеих оболочках.
+
 ## Структура проекта
 
 ```text
@@ -112,6 +126,10 @@ Git не отслеживает пустые каталоги, поэтому `f
 
 Скопируйте шаблон:
 
+```bash
+cp .env.example .env
+```
+
 ```powershell
 Copy-Item .env.example .env
 ```
@@ -131,13 +149,37 @@ Copy-Item .env.example .env
 
 ### 3. Создать пользователя Registry
 
-Каталог `registry/auth/` тоже зафиксирован в репозитории файлом `.gitkeep`. На сервере остаётся создать только один файл — `htpasswd` с хешем пароля:
+Каталог `registry/auth/` тоже зафиксирован в репозитории файлом `.gitkeep`. На сервере остаётся создать только один файл — `htpasswd` с хешем пароля.
+
+Linux/macOS (bash):
+
+```bash
+docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' > registry/auth/htpasswd
+```
+
+Безопасный вариант для bash — пароль не попадёт в историю команд:
+
+```bash
+read -s REGISTRY_PASSWORD
+docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user "$REGISTRY_PASSWORD" > registry/auth/htpasswd
+unset REGISTRY_PASSWORD
+```
+
+Windows PowerShell:
 
 ```powershell
 docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' | Out-File -Encoding ascii registry/auth/htpasswd
 ```
 
-Замените `registry-user` и `CHANGE_THIS_PASSWORD` на собственные значения. Файл не содержит открытый пароль, но всё равно является секретом и исключён из Git.
+В PowerShell редирект `>` перекодирует вывод в UTF-16, и Registry не сможет прочитать такой файл, поэтому там обязателен `Out-File -Encoding ascii`. В bash, наоборот, `Out-File` не существует — используется обычный `>`.
+
+Замените `registry-user` и `CHANGE_THIS_PASSWORD` на собственные значения. Не используйте простые пароли: Registry доступен по HTTP из локальной сети. Файл не содержит открытый пароль, но всё равно является секретом и исключён из Git.
+
+Проверьте, что файл создан и содержит хеш bcrypt (`$2y$` в начале строки):
+
+```bash
+head -c 10 registry/auth/htpasswd; echo
+```
 
 ## Запуск
 
@@ -284,11 +326,15 @@ docker push 192.168.1.10:5000/orders-backend:latest
 
 Без авторизации Registry должен вернуть `401 Unauthorized`:
 
+```bash
+curl -i http://192.168.1.10:5000/v2/
+```
+
 ```powershell
 Invoke-WebRequest http://192.168.1.10:5000/v2/ -SkipHttpErrorCheck
 ```
 
-После успешного `docker login` команды push и pull должны выполняться без ошибки авторизации.
+Подставьте адрес вашего сервера. После успешного `docker login` команды push и pull должны выполняться без ошибки авторизации.
 
 ## Проверка
 
@@ -305,6 +351,10 @@ docker compose ps
 ```
 
 Проверка HTTP Registry:
+
+```bash
+curl -i http://192.168.1.10:5000/v2/
+```
 
 ```powershell
 Invoke-WebRequest http://192.168.1.10:5000/v2/ -SkipHttpErrorCheck
@@ -362,6 +412,8 @@ labels:
 - HTTP Registry не шифрует трафик. Пароль `docker login` может быть перехвачен в сети.
 - HTTP Registry нельзя публиковать в интернет.
 - Для production необходимо использовать TLS, безопасные секреты, ограничение сетевого доступа и регулярное резервное копирование.
+- Registry публикуется на всех интерфейсах хоста (`0.0.0.0`). Если сервер имеет публичный IP-адрес, порт `REGISTRY_PORT` доступен из интернета по HTTP: закройте его файрволом (например, `ufw allow from <ваш_ip> to any port 5000`) или ограничьте публикацию адресом `127.0.0.1` в `docker-compose.yml`.
+- Пароль Registry должен быть стойким: при HTTP-доступе его перебор не ограничен TLS-защитой и блокировками.
 - Watchtower получает доступ к Docker socket, поэтому имеет высокий уровень привилегий на Docker-хосте.
 
 ## Типовые проблемы
@@ -369,6 +421,10 @@ labels:
 ### `docker compose config` сообщает о пустых переменных
 
 Создайте `.env` из `.env.example` и заполните обязательные значения:
+
+```bash
+cp .env.example .env
+```
 
 ```powershell
 Copy-Item .env.example .env
@@ -389,9 +445,17 @@ docker compose logs registry
 
 Каталог `registry/auth` попадает в репозиторий пустым (в Git лежит только `.gitkeep`), поэтому после первой загрузки на сервере файла `htpasswd` ещё нет, и Registry не может включить авторизацию. Создайте файл и пересоздайте контейнер:
 
-```powershell
-docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' | Out-File -Encoding ascii registry/auth/htpasswd
+```bash
+docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' > registry/auth/htpasswd
 docker compose up -d --force-recreate registry
+```
+
+### `Out-File: command not found` и `write /dev/stdout: broken pipe`
+
+Значит, команду из PowerShell-примера выполнили в bash на Linux. `Out-File` — cmdlet PowerShell, в bash его нет: оболочка не нашла команду и закрыла pipe, из-за чего `docker run` получил `broken pipe`. Сам контейнер `htpasswd` отработал корректно. Используйте редирект `>`:
+
+```bash
+docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' > registry/auth/htpasswd
 ```
 
 ### Docker сообщает о небезопасном Registry
@@ -407,6 +471,10 @@ docker login IP_СЕРВЕРА:REGISTRY_PORT
 ```
 
 Если ошибка остаётся после входа, проверьте существование файла:
+
+```bash
+test -f registry/auth/htpasswd && echo ok
+```
 
 ```powershell
 Test-Path registry/auth/htpasswd

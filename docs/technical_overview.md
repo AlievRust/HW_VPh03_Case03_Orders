@@ -22,11 +22,21 @@ Copy-Item .env.example .env
 
 В `.env` замените демонстрационные пароли и установите фактический IP-адрес сервера в `REGISTRY_HOST`.
 
-Создайте файл аутентификации Registry. Команда запросит пароль пользователя Registry и сохранит только его хеш:
+Создайте файл аутентификации Registry. Команда сохраняет только хеш пароля.
+
+Linux/macOS (bash):
+
+```bash
+docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' > registry/auth/htpasswd
+```
+
+Windows PowerShell:
 
 ```powershell
 docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' | Out-File -Encoding ascii registry/auth/htpasswd
 ```
+
+В PowerShell нельзя использовать `>` для этой команды: PowerShell перекодирует вывод в UTF-16, и Registry не прочитает такой файл. В bash наоборот — `Out-File` недоступен, поэтому применяется обычный `>`.
 
 Каталог `registry/auth` зафиксирован в Git файлом `.gitkeep`, поэтому после клонирования или `git pull` он уже существует. Аналогично зафиксирован каталог `frontend` — там лежит учебная страница `index.html`, которую Nginx отдаёт до подключения приложения.
 
@@ -82,6 +92,10 @@ docker pull 192.168.1.10:5000/orders-backend:test
 ```
 
 Проверка доступности API Registry без аутентификации должна вернуть ответ `401 Unauthorized`, что означает включённую аутентификацию:
+
+```bash
+curl -i http://192.168.1.10:5000/v2/
+```
 
 ```powershell
 Invoke-WebRequest http://192.168.1.10:5000/v2/ -SkipHttpErrorCheck
