@@ -28,11 +28,7 @@ Copy-Item .env.example .env
 docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' | Out-File -Encoding ascii registry/auth/htpasswd
 ```
 
-Каталог `registry/auth` создайте перед выполнением команды, если он отсутствует:
-
-```powershell
-New-Item -ItemType Directory -Force registry/auth
-```
+Каталог `registry/auth` зафиксирован в Git файлом `.gitkeep`, поэтому после клонирования или `git pull` он уже существует. Аналогично зафиксирован каталог `frontend` — там лежит учебная страница `index.html`, которую Nginx отдаёт до подключения приложения.
 
 Файл `registry/auth/htpasswd` исключён из Git.
 

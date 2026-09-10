@@ -91,18 +91,20 @@ Compose-файл не устанавливает Docker автоматическ
 ├── .env.example                         # шаблон переменных окружения
 ├── .gitignore                           # исключения секретов и локальных данных
 ├── docker-compose.yml                   # описание контейнеров и сетей
+├── frontend/
+│   └── index.html                       # стартовая страница до подключения приложения
 ├── nginx/
 │   └── default.conf                     # маршруты Nginx
 ├── registry/
-│   └── auth/                            # локальный htpasswd, не коммитится
-├── frontend/                            # статические файлы frontend
+│   └── auth/
+│       └── .gitkeep                     # фиксация каталога в Git
 ├── docs/
 │   ├── changelog.md                     # история изменений
 │   └── technical_overview.md            # техническая документация
 └── openspec/                             # спецификации изменений
 ```
 
-Каталог `frontend/` должен существовать до запуска Compose. Если frontend ещё не создан, можно временно подготовить пустой каталог с тестовой страницей.
+Git не отслеживает пустые каталоги, поэтому `frontend/` и `registry/auth/` зафиксированы файлами `index.html` и `.gitkeep`. Оба каталога появятся после `git clone` или `git pull` на сервере, создавать их вручную не нужно.
 
 ## Первоначальная настройка
 
@@ -123,25 +125,13 @@ Copy-Item .env.example .env
 
 Файл `.env` исключён из Git и не должен публиковаться.
 
-### 2. Подготовить каталог frontend
+### 2. Разместить frontend
 
-Если каталога ещё нет:
-
-```powershell
-New-Item -ItemType Directory -Force frontend
-```
-
-Положите в него собранный frontend. Nginx будет искать стартовый файл `index.html`.
+Каталог `frontend/` уже есть в репозитории и содержит учебную страницу `index.html`, поэтому после `git pull` на сервере он доступен сразу. Когда приложение будет готово, замените эту страницу файлами собранного frontend. Nginx всегда ищет стартовый файл `index.html`.
 
 ### 3. Создать пользователя Registry
 
-Создайте каталог для файла авторизации:
-
-```powershell
-New-Item -ItemType Directory -Force registry/auth
-```
-
-Создайте файл `htpasswd` с хешем пароля:
+Каталог `registry/auth/` тоже зафиксирован в репозитории файлом `.gitkeep`. На сервере остаётся создать только один файл — `htpasswd` с хешем пароля:
 
 ```powershell
 docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' | Out-File -Encoding ascii registry/auth/htpasswd
@@ -394,6 +384,15 @@ docker compose logs registry
 ```
 
 Также проверьте, что порт из `REGISTRY_PORT` свободен и доступен в локальной сети.
+
+### Registry сразу перезапускается после `git pull`
+
+Каталог `registry/auth` попадает в репозиторий пустым (в Git лежит только `.gitkeep`), поэтому после первой загрузки на сервере файла `htpasswd` ещё нет, и Registry не может включить авторизацию. Создайте файл и пересоздайте контейнер:
+
+```powershell
+docker run --rm --entrypoint htpasswd httpd:2 -Bbn registry-user 'CHANGE_THIS_PASSWORD' | Out-File -Encoding ascii registry/auth/htpasswd
+docker compose up -d --force-recreate registry
+```
 
 ### Docker сообщает о небезопасном Registry
 

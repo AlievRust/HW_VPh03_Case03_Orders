@@ -38,6 +38,7 @@ Registry использует образ `registry:2`, volume для образ�
 - Сервис публикует `REGISTRY_PORT:5000` на всех сетевых интерфейсах хоста.
 - Аутентификация включается переменными `REGISTRY_AUTH=htpasswd` и `REGISTRY_AUTH_HTPASSWD_REALM`.
 - Файл создаётся администратором командой с контейнером `httpd:2` и не хранится в репозитории.
+- Каталог `registry/auth` фиксируется в Git пустым `.gitkeep`, чтобы bind mount был доступен сразу после `git pull`.
 - Registry работает по HTTP в учебной локальной сети. Docker-клиенту требуется настройка `insecure-registries` для адреса `IP_СЕРВЕРА:REGISTRY_PORT`.
 
 ## Nginx
@@ -47,6 +48,7 @@ Nginx использует конфигурацию `nginx/default.conf`:
 - `/` отдаёт статические файлы из `/usr/share/nginx/html`.
 - `/pgadmin/` проксируется на `pgadmin:80` с настройками для работы за обратным прокси.
 - Блок `/api/` для будущего backend оставляется закомментированным.
+- Каталог `frontend` фиксируется в Git учебной страницей `index.html`, чтобы Nginx отдавал её сразу после `git pull`.
 
 ## Watchtower
 
