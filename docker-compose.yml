@@ -69,10 +69,12 @@ services:
     restart: unless-stopped
 
   # Обновляет только контейнеры с меткой Watchtower.
-  # Версия 1.7.1 использует устаревший Docker API и не подходит для новых daemon.
+  # DOCKER_API_VERSION задаёт минимальную API-версию, которую принимает новый daemon.
   watchtower:
     image: containrrr/watchtower:latest
     container_name: orders-watchtower
+    environment:
+      DOCKER_API_VERSION: "1.40"
     command: --label-enable --cleanup --interval 300
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

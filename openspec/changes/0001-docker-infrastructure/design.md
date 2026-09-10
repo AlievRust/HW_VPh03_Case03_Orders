@@ -52,7 +52,7 @@ Nginx использует конфигурацию `nginx/default.conf`:
 
 ## Watchtower
 
-Watchtower получает доступ к Docker socket и запускается с `--label-enable`. Контейнеры обновляются только при наличии метки `com.centurylinklabs.watchtower.enable=true`; на старте ни один сервис её не получает.
+Watchtower получает доступ к Docker socket, запускается с `--label-enable` и переменной `DOCKER_API_VERSION=1.40`. Контейнеры обновляются только при наличии метки `com.centurylinklabs.watchtower.enable=true`; на старте ни один сервис её не получает.
 
 ## Персистентность
 
