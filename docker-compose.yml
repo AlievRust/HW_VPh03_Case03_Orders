@@ -69,8 +69,9 @@ services:
     restart: unless-stopped
 
   # Обновляет только контейнеры с меткой Watchtower.
+  # Версия 1.7.1 использует устаревший Docker API и не подходит для новых daemon.
   watchtower:
-    image: containrrr/watchtower:1.7.1
+    image: containrrr/watchtower:latest
     container_name: orders-watchtower
     command: --label-enable --cleanup --interval 300
     volumes:

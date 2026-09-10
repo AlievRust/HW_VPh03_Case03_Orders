@@ -394,6 +394,21 @@ Watchtower запускается с параметрами:
 - `--cleanup` — удаляет старые образы после обновления;
 - `--interval 300` — проверяет обновления каждые 300 секунд.
 
+В Compose используется образ `containrrr/watchtower:latest`. Это важно для совместимости с современным Docker daemon: старые версии Watchtower могут использовать Docker API ниже минимально поддерживаемой версии и завершаться ошибкой `client version 1.25 is too old`.
+
+После изменения версии обновите только Watchtower:
+
+```bash
+docker compose pull watchtower
+docker compose up -d --force-recreate watchtower
+```
+
+Проверьте логи:
+
+```bash
+docker compose logs -f watchtower
+```
+
 В Compose-примере метка включения добавлена только в закомментированный блок будущего backend:
 
 ```yaml

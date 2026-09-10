@@ -105,6 +105,15 @@ Invoke-WebRequest http://192.168.1.10:5000/v2/ -SkipHttpErrorCheck
 
 ## Watchtower
 
+В Compose используется образ `containrrr/watchtower:latest`. Это необходимо для совместимости с современным Docker daemon: старые версии могут обращаться к Docker API версии `1.25`, тогда как новый daemon требует API не ниже `1.40`.
+
+После обновления Compose-файла обновите контейнер Watchtower:
+
+```bash
+docker compose pull watchtower
+docker compose up -d --force-recreate watchtower
+```
+
 Watchtower проверяет образы каждые пять минут и обновляет только контейнеры с меткой:
 
 ```yaml
