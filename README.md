@@ -2,7 +2,7 @@
 
 Учебный проект для сбора заявок от «тёплых клиентов». На текущем этапе в репозитории подготовлена контейнерная инфраструктура: обратный прокси Nginx, PostgreSQL, pgAdmin, локальный Docker Registry и Watchtower.
 
-Backend пока не реализован и не запускается. Его пример оставлен в `docker-compose.yml` в виде закомментированного блока.
+Backend реализован в `backend/` и запускается как приватный Compose-сервис. Его host-порт не публикуется: API доступен через Nginx по маршруту `/api/`.
 
 ## Содержание
 
@@ -32,7 +32,7 @@ Backend пока не реализован и не запускается. Ег�
       |  \
       |   \-- /pgadmin/ --> pgAdmin --> PostgreSQL
       |
-      \-- /api/ ---------> будущий backend
+       \-- /api/ ---------> приватный FastAPI backend --> PostgreSQL
 
 Docker-клиент в локальной сети
         |
@@ -45,17 +45,17 @@ Docker-клиент в локальной сети
 
 | Сервис | Назначение | Доступ с хоста |
 | --- | --- | --- |
-| `nginx` | Раздаёт frontend и проксирует pgAdmin и будущий API | `NGINX_PORT` |
+| `nginx` | Раздаёт frontend и проксирует pgAdmin и API | `NGINX_PORT` |
 | `postgres` | Хранит данные приложения | Не публикует порт |
 | `pgadmin` | Веб-интерфейс PostgreSQL | Через Nginx: `/pgadmin/` |
-| `registry` | Хранит Docker-образы будущего backend | `REGISTRY_PORT` |
+| `registry` | Хранит Docker-образы backend | `REGISTRY_PORT` |
 | `watchtower` | Обновляет контейнеры с соответствующей меткой | Не публикует порт |
-| `backend` | Будущий API | Пока отключён комментарием |
+| `backend` | FastAPI API заявок и аналитики | Только через Nginx `/api/` |
 
 ### Сети
 
 - `orders_public` используется Nginx и Registry.
-- `orders_private` помечена как `internal: true` и используется PostgreSQL, pgAdmin и будущим backend.
+- `orders_private` помечена как `internal: true` и используется PostgreSQL, pgAdmin и backend.
 - PostgreSQL не имеет проброса порта на хост, поэтому внешние клиенты не могут подключиться к нему напрямую.
 - Nginx подключён к обеим сетям, чтобы принимать внешние HTTP-запросы и обращаться к внутренним сервисам.
 
@@ -109,6 +109,10 @@ Compose-файл не устанавливает Docker автоматическ
 │   └── index.html                       # стартовая страница до подключения приложения
 ├── nginx/
 │   └── default.conf                     # маршруты Nginx
+├── backend/
+│   ├── Dockerfile                        # образ FastAPI
+│   ├── requirements.txt                  # зависимости backend
+│   └── app/                              # конфигурация, модели и роуты API
 ├── registry/
 │   └── auth/
 │       └── .gitkeep                     # фиксация каталога в Git
@@ -209,6 +213,55 @@ docker compose logs -f postgres
 docker compose logs -f pgadmin
 docker compose logs -f registry
 docker compose logs -f watchtower
+```
+
+## Backend API
+
+Backend работает только во внутренней Docker-сети `orders_private`. В `docker-compose.yml` у него отсутствует секция `ports`, поэтому прямого доступа к `IP_VPS:8000` нет.
+
+Через Nginx доступны:
+
+```text
+GET  http://IP_VPS/api/health
+GET  http://IP_VPS/health
+```
+
+Основные endpoints:
+
+- `POST /api/leads` — создать заявку, при необходимости вместе с аналитикой;
+- `GET /api/leads` и `GET /api/leads/{id}` — получить заявки;
+- `PUT` и `DELETE /api/leads/{id}` — изменить или удалить заявку;
+- `POST`, `GET`, `PUT`, `DELETE /api/analytics/{lead_id}` — аналитика заявки;
+- `POST`, `GET`, `PUT`, `DELETE /api/admin-settings/{id}` — настройки услуг и бюджета.
+
+Пример пакета заявки:
+
+```json
+{
+  "first_name": "Иван",
+  "last_name": "Иванов",
+  "contact_value": "ivan@example.com",
+  "business_niche": "IT",
+  "company_size": "1-10",
+  "business_info": "Разрабатываем SaaS",
+  "task_volume": "Новый сайт",
+  "budget": "100000",
+  "result_deadline": "1 месяц",
+  "customer_role": "Руководитель",
+  "task_type": "Разработка",
+  "product_interest": "Backend",
+  "contact_method": "Email",
+  "preferred_time": "Днём",
+  "comments": "Связаться после 12:00",
+  "analytics": {
+    "time_on_page_seconds": 180,
+    "button_clicks": 4,
+    "cursor_pauses": 2,
+    "return_visits": 1,
+    "events": [],
+    "technical_info": {"user_agent": "..."}
+  }
+}
 ```
 
 ## Доступ к сервисам
@@ -315,7 +368,7 @@ docker push 192.168.1.10:5000/orders-backend:test
 docker pull 192.168.1.10:5000/orders-backend:test
 ```
 
-Для будущего backend схема будет такой:
+Для сборки и публикации образа backend схема такая:
 
 ```powershell
 docker build -t 192.168.1.10:5000/orders-backend:latest .
@@ -409,14 +462,14 @@ docker compose up -d --force-recreate watchtower
 docker compose logs -f watchtower
 ```
 
-В Compose-примере метка включения добавлена только в закомментированный блок будущего backend:
+Метка включения Watchtower может быть добавлена в сервис backend при переходе на публикацию образа через Registry:
 
 ```yaml
 labels:
   com.centurylinklabs.watchtower.enable: "true"
 ```
 
-Поэтому текущие инфраструктурные сервисы Watchtower автоматически не обновляет.
+Поэтому текущие инфраструктурные сервисы и локально собираемый backend Watchtower автоматически не обновляет.
 
 ## Безопасность учебного решения
 

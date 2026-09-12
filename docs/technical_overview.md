@@ -103,6 +103,12 @@ Invoke-WebRequest http://192.168.1.10:5000/v2/ -SkipHttpErrorCheck
 
 Не используйте HTTP Registry в публичной сети: логин и пароль `docker login` передаются без шифрования. Для неучебной эксплуатации необходим TLS.
 
+## Backend API
+
+FastAPI-приложение находится в `backend/` и запускается отдельным Compose-сервисом `backend`. Сервис подключён только к `orders_private`; host-порт `8000` не публикуется. Nginx обращается к нему по внутреннему DNS-имени `backend` и проксирует внешний путь `/api/`.
+
+Backend использует PostgreSQL по адресу `postgres:5432`. При старте SQLAlchemy создаёт таблицы `leads`, `lead_analytics` и `admin_settings`, если они отсутствуют. Модели и CRUD-классы расположены вместе в `backend/app/models/`, роутеры разделены по сущностям в `backend/app/routers/`.
+
 ## Watchtower
 
 В Compose используется образ `containrrr/watchtower:latest` с переменной `DOCKER_API_VERSION=1.40`. Это необходимо для совместимости с современным Docker daemon: старые версии могут обращаться к Docker API версии `1.25`, тогда как новый daemon требует API не ниже `1.40`.
