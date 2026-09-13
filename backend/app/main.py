@@ -19,6 +19,9 @@ app = FastAPI(
     title="Orders Leads API",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
 )
 app.include_router(leads.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")

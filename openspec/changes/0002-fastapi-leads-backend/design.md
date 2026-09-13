@@ -137,7 +137,10 @@ SQL для таблицы указывается в docstring класса мо�
 Служебные endpoints:
 
 - `GET /api/health` — проверка доступности приложения без обращения к БД через Nginx;
-- `GET /api/health/db` — проверка соединения с PostgreSQL через Nginx.
+- `GET /api/health/db` — проверка соединения с PostgreSQL через Nginx;
+- `GET /api/docs` — Swagger UI;
+- `GET /api/openapi.json` — OpenAPI-схема;
+- `GET /api/redoc` — ReDoc.
 
 Внутренние варианты `/health` и `/health/db` также оставлены для прямых запросов внутри Docker-сети.
 

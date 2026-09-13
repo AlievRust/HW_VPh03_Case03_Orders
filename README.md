@@ -1,6 +1,6 @@
-# Orders: учебная Docker-инфраструктура
+# Luxury-Auto: учебная Docker-инфраструктура
 
-Учебный проект для сбора заявок от «тёплых клиентов». На текущем этапе в репозитории подготовлена контейнерная инфраструктура: обратный прокси Nginx, PostgreSQL, pgAdmin, локальный Docker Registry и Watchtower.
+Luxury-Auto — бизнес-проект для сбора заявок от «тёплых клиентов». На текущем этапе в репозитории подготовлена контейнерная инфраструктура: обратный прокси Nginx, PostgreSQL, pgAdmin, локальный Docker Registry, Watchtower и приватный FastAPI backend.
 
 Backend реализован в `backend/` и запускается как приватный Compose-сервис. Его host-порт не публикуется: API доступен через Nginx по маршруту `/api/`.
 
@@ -223,6 +223,8 @@ Backend работает только во внутренней Docker-сети 
 
 ```text
 GET  http://IP_VPS/api/health
+GET  http://IP_VPS/api/docs
+GET  http://IP_VPS/api/openapi.json
 GET  http://IP_VPS/health
 ```
 

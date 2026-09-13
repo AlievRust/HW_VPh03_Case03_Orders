@@ -1,5 +1,7 @@
 # История изменений
 
+- Зафиксировано название бизнеса: Luxury-Auto.
+
 ## 0001-docker-infrastructure
 
 - Добавлена Docker Compose-инфраструктура с Nginx, PostgreSQL, pgAdmin, приватным HTTP Docker Registry и Watchtower.
