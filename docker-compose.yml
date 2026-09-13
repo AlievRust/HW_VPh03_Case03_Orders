@@ -1,5 +1,15 @@
 # Учебный контур запускается одной командой и не требует локальной установки БД.
 services:
+  # Одноразовая npm/Vite-сборка frontend в общий каталог dist.
+  frontend-build:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend/dist:/output
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["cp -r /dist/. /output/"]
+
   # Единственная точка входа для frontend и внутренних веб-сервисов.
   nginx:
     image: nginx:1.27-alpine
@@ -7,7 +17,7 @@ services:
     ports:
       - "${NGINX_PORT:-80}:80"
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       pgadmin:

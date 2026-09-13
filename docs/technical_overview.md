@@ -6,7 +6,8 @@ Luxury-Auto — бизнес-проект для сбора заявок от п
 
 Учебная инфраструктура запускается через Docker Compose и включает:
 
-- `nginx` для раздачи frontend и доступа к pgAdmin;
+- `frontend-build` для npm/Vite-сборки frontend в `frontend/dist`;
+- `nginx` для раздачи собранного frontend и доступа к pgAdmin;
 - `postgres` для хранения данных приложения во внутренней сети Docker;
 - `pgadmin` для администрирования PostgreSQL через Nginx;
 - `registry` для хранения образов будущего backend;

@@ -1,6 +1,6 @@
 # Luxury-Auto: учебная Docker-инфраструктура
 
-Luxury-Auto — бизнес-проект для сбора заявок от «тёплых клиентов». На текущем этапе в репозитории подготовлена контейнерная инфраструктура: обратный прокси Nginx, PostgreSQL, pgAdmin, локальный Docker Registry, Watchtower и приватный FastAPI backend.
+Luxury-Auto — бизнес-проект для сбора заявок от «тёплых клиентов». На текущем этапе в репозитории подготовлена контейнерная инфраструктура: npm/Vite frontend Luxury-Auto, обратный прокси Nginx, PostgreSQL, pgAdmin, локальный Docker Registry, Watchtower и приватный FastAPI backend.
 
 Backend реализован в `backend/` и запускается как приватный Compose-сервис. Его host-порт не публикуется: API доступен через Nginx по маршруту `/api/`.
 
@@ -147,9 +147,20 @@ Copy-Item .env.example .env
 
 Файл `.env` исключён из Git и не должен публиковаться.
 
-### 2. Разместить frontend
+### 2. Собрать frontend
 
-Каталог `frontend/` уже есть в репозитории и содержит учебную страницу `index.html`, поэтому после `git pull` на сервере он доступен сразу. Когда приложение будет готово, замените эту страницу файлами собранного frontend. Nginx всегда ищет стартовый файл `index.html`.
+Frontend находится в каталоге `frontend/` и собирается через npm/Vite. Если npm не установлен на хосте, используйте одноразовую сборку в Docker:
+
+```bash
+docker compose run --rm frontend-build
+```
+
+Команда создаёт production-файлы в `frontend/dist/`, который Nginx раздаёт как стартовую страницу. После обновления исходников повторите эту команду и пересоздайте Nginx:
+
+```bash
+docker compose run --rm frontend-build
+docker compose up -d --force-recreate nginx
+```
 
 ### 3. Создать пользователя Registry
 
