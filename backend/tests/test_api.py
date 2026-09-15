@@ -3,7 +3,9 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from app.core.database import get_db
+from app.core.security import get_current_admin
 from app.main import app
+from app.models.admin_user import AdminUser
 from app.models.lead import Lead
 
 
@@ -62,6 +64,11 @@ def override_db():
     yield FakeSession()
 
 
+def override_admin():
+    # Смена 0004 закрыла эти endpoints JWT; для тестов подменяем dependency.
+    return AdminUser(id=1, login="test", nickname="Test", password_hash="x", is_active=True)
+
+
 def test_health():
     with TestClient(app) as client:
         response = client.get("/health")
@@ -71,9 +78,10 @@ def test_health():
 
 def test_lead_list_uses_router():
     app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_current_admin] = override_admin
     try:
-        with TestClient(app) as client:
-            response = client.get("/api/leads")
+        client = TestClient(app)
+        response = client.get("/api/leads")
     finally:
         app.dependency_overrides.clear()
 
@@ -82,7 +90,9 @@ def test_lead_list_uses_router():
 
 
 def test_invalid_admin_budget_range():
-    with TestClient(app) as client:
+    app.dependency_overrides[get_current_admin] = override_admin
+    try:
+        client = TestClient(app)
         response = client.post(
             "/api/admin-settings",
             json={
@@ -92,4 +102,7 @@ def test_invalid_admin_budget_range():
                 "budget_step": 10,
             },
         )
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 422

@@ -1,4 +1,5 @@
 import './style.css'
+import './metrics.js'
 
 const app = document.querySelector('#app')
 const startedAt = Date.now()

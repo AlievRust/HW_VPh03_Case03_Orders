@@ -119,7 +119,7 @@ function renderAdmin() {
     <main class="admin-shell">
       <header class="admin-header">
         <div><p class="admin-kicker">LUXURY-AUTO / ADMIN</p><h1>Услуги</h1></div>
-        <div class="header-actions"><a class="back-link" href="/">На сайт</a><button class="link-button" id="logout">Выйти</button></div>
+        <div class="header-actions"><a class="back-link" href="/">На сайт</a><button class="link-button" id="show-stats">Статистика</button><button class="link-button" id="logout">Выйти</button></div>
       </header>
       <section class="admin-layout">
         <form class="admin-card admin-form" id="service-form">
@@ -154,6 +154,7 @@ function renderAdmin() {
     token = null
     initializeAuth()
   })
+  document.querySelector('#show-stats').addEventListener('click', showStatsModal)
   document.querySelector('#service-form').addEventListener('submit', saveService)
   document.querySelector('#cancel-edit').addEventListener('click', resetServiceForm)
   document.querySelector('#admin-form').addEventListener('submit', addAdmin)
@@ -231,17 +232,107 @@ async function deleteService(id) {
   }
 }
 
-async function addAdmin(event) {
-  event.preventDefault()
-  const form = event.currentTarget
-  const error = form.parentElement.querySelector('.form-error')
-  try {
-    await api('/auth/admins', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) })
-    form.reset()
-    error.textContent = 'Администратор добавлен'
-  } catch (requestError) {
-    error.textContent = requestError.message
+const PERIOD_TITLES = { day: 'За день', week: 'За неделю', month: 'За месяц' }
+
+function formatDuration(seconds) {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const rest = seconds % 60
+  const mm = String(minutes).padStart(2, '0')
+  const ss = String(rest).padStart(2, '0')
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`
+}
+
+function drawHeatmap(canvas, points) {
+  const ratio = window.devicePixelRatio || 1
+  const width = canvas.clientWidth || 900
+  const height = Math.round(width * 0.62)
+  canvas.width = Math.round(width * ratio)
+  canvas.height = Math.round(height * ratio)
+  canvas.style.height = `${height}px`
+
+  const context = canvas.getContext('2d')
+  context.scale(ratio, ratio)
+  context.clearRect(0, 0, width, height)
+  if (points.length === 0) return
+
+  // Альфа подстраивается под число точек: иначе при тысячах точек «горит» вся карта.
+  const alpha = Math.min(0.15, Math.max(0.03, 60 / points.length))
+  const radius = Math.max(18, width * 0.022)
+
+  for (const point of points) {
+    const x = (point.x / 100) * width
+    const y = (point.y / 100) * height
+    const gradient = context.createRadialGradient(x, y, 0, x, y, radius)
+    gradient.addColorStop(0, `rgba(214, 151, 70, ${alpha})`)
+    gradient.addColorStop(1, 'rgba(214, 151, 70, 0)')
+    context.fillStyle = gradient
+    context.beginPath()
+    context.arc(x, y, radius, 0, Math.PI * 2)
+    context.fill()
   }
+}
+
+async function showStatsModal() {
+  const overlay = document.createElement('div')
+  overlay.className = 'stats-overlay'
+  overlay.innerHTML = `
+    <div class="stats-modal" role="dialog" aria-modal="true" aria-label="Статистика посетителей">
+      <header class="stats-header">
+        <div><p class="admin-kicker">LUXURY-AUTO / METRICS</p><h2>Статистика посетителей</h2></div>
+        <button class="link-button" id="stats-close" aria-label="Закрыть">✕</button>
+      </header>
+      <p class="stats-note">Загружаем данные...</p>
+    </div>
+  `
+  document.body.appendChild(overlay)
+
+  const closeModal = () => {
+    document.removeEventListener('keydown', escapeHandler)
+    overlay.remove()
+  }
+  const escapeHandler = (event) => {
+    if (event.key === 'Escape') closeModal()
+  }
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) closeModal()
+  })
+  overlay.querySelector('#stats-close').addEventListener('click', closeModal)
+  document.addEventListener('keydown', escapeHandler)
+
+  let stats
+  try {
+    stats = await api('/behavior-metrics/stats')
+  } catch (error) {
+    overlay.querySelector('.stats-note').textContent = `Не удалось загрузить статистику: ${error.message}`
+    return
+  }
+
+  const cards = Object.entries(stats.periods).map(([key, period]) => `
+    <article class="stat-card">
+      <h3>${PERIOD_TITLES[key] || key}</h3>
+      <p class="stat-main"><strong>${formatDuration(period.avg_time_on_page)}</strong><span>среднее время на странице</span></p>
+      <p class="stat-row"><span>Максимум</span><strong>${formatDuration(period.max_time_on_page)}</strong></p>
+      <p class="stat-row"><span>Визитов</span><strong>${period.sessions}</strong></p>
+    </article>
+  `).join('')
+
+  const modal = overlay.querySelector('.stats-modal')
+  modal.innerHTML = `
+    <header class="stats-header">
+      <div><p class="admin-kicker">LUXURY-AUTO / METRICS</p><h2>Статистика посетителей</h2></div>
+      <button class="link-button" id="stats-close" aria-label="Закрыть">✕</button>
+    </header>
+    <div class="stats-cards">${cards}</div>
+    <section class="stats-heatmap">
+      <h3>Хитмэп курсора</h3>
+      <p class="stats-note">Чем теплее зона, тем дольше посетители держат курсор в этой области экрана.</p>
+      <canvas id="stats-canvas" aria-label="Хитмэп позиций курсора"></canvas>
+      <p class="stats-note">Всего визитов: ${stats.total_sessions} · точек курсора: ${stats.cursor_positions.length}</p>
+    </section>
+  `
+  modal.querySelector('#stats-close').addEventListener('click', closeModal)
+  drawHeatmap(modal.querySelector('#stats-canvas'), stats.cursor_positions)
 }
 
 initializeAuth()

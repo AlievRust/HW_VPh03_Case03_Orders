@@ -38,4 +38,19 @@ input:focus, textarea:focus { border-color: #c9a45d; }
 .service-row small { color: #8e857b; }
 .admin-users-card { margin-top: 22px; }
 .admin-form-inline { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; }
-@media (max-width: 760px) { .admin-shell { width: min(100% - 24px, 580px); padding-top: 24px; } .admin-header, .service-row { align-items: start; flex-direction: column; } .admin-layout { grid-template-columns: 1fr; } .admin-form-inline, .number-grid { grid-template-columns: 1fr; } .auth-card, .admin-card { padding: 22px; } }
+/* Полноэкранное модальное окно статистики посетителей. */
+.stats-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; background: rgba(8, 7, 6, .86); }
+.stats-modal { width: min(1100px, 100%); max-height: calc(100vh - 48px); overflow: auto; padding: 34px; border: 1px solid #423b2d; background: #171512; box-shadow: 0 24px 80px #000c; }
+.stats-header { display: flex; justify-content: space-between; align-items: start; gap: 18px; }
+.stats-header h2 { margin: 0; }
+.stats-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 26px 0; }
+.stat-card { border: 1px solid #393329; padding: 20px; }
+.stat-card h3 { margin: 0 0 14px; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: #c9a45d; }
+.stat-main { display: grid; gap: 4px; margin: 0 0 14px; }
+.stat-main strong { font-family: 'Manrope', sans-serif; font-size: 34px; }
+.stat-main span, .stat-row span, .stats-note { color: #a9a198; font-size: 13px; }
+.stat-row { display: flex; justify-content: space-between; margin: 6px 0 0; }
+.stats-heatmap h3 { margin-bottom: 8px; }
+.stats-heatmap canvas { display: block; width: 100%; margin: 14px 0 10px; border: 1px solid #393329; background: #0d0c0b; border-radius: 2px; }
+.stats-note { margin: 0; }
+@media (max-width: 760px) { .admin-shell { width: min(100% - 24px, 580px); padding-top: 24px; } .admin-header, .service-row { align-items: start; flex-direction: column; } .admin-layout { grid-template-columns: 1fr; } .admin-form-inline, .number-grid { grid-template-columns: 1fr; } .auth-card, .admin-card { padding: 22px; } .stats-overlay { padding: 12px; } .stats-modal { padding: 22px; max-height: calc(100vh - 24px); } .stats-cards { grid-template-columns: 1fr; } }
