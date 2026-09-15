@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
+from app.core.security import get_current_admin
+from app.models.admin_user import AdminUser
 from app.models.analytics import LeadAnalytics
 from app.models.lead import Lead, LeadCRUD
 from app.schemas.lead import LeadCreate, LeadRead, LeadUpdate
@@ -44,6 +46,7 @@ def list_leads(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
+    _admin: AdminUser = Depends(get_current_admin),
 ) -> list[Lead]:
     return list(
         db.query(Lead)
@@ -55,7 +58,11 @@ def list_leads(
 
 
 @router.get("/{lead_id}", response_model=LeadRead)
-def get_lead(lead_id: int, db: Session = Depends(get_db)) -> Lead:
+def get_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _admin: AdminUser = Depends(get_current_admin),
+) -> Lead:
     return get_lead_or_404(db, lead_id)
 
 
@@ -64,6 +71,7 @@ def update_lead(
     lead_id: int,
     payload: LeadUpdate,
     db: Session = Depends(get_db),
+    _admin: AdminUser = Depends(get_current_admin),
 ) -> Lead:
     lead = get_lead_or_404(db, lead_id)
     updated = LeadCRUD.update(db, lead, payload.model_dump())
@@ -71,6 +79,10 @@ def update_lead(
 
 
 @router.delete("/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_lead(lead_id: int, db: Session = Depends(get_db)) -> None:
+def delete_lead(
+    lead_id: int,
+    db: Session = Depends(get_db),
+    _admin: AdminUser = Depends(get_current_admin),
+) -> None:
     lead = get_lead_or_404(db, lead_id)
     LeadCRUD.delete(db, lead)

@@ -143,6 +143,8 @@ Copy-Item .env.example .env
 - `REGISTRY_HOST` — IP-адрес машины, на которой работает Registry;
 - `POSTGRES_PASSWORD` — пароль PostgreSQL;
 - `PGADMIN_DEFAULT_PASSWORD` — пароль pgAdmin;
+- `JWT_SECRET` — длинный случайный секрет для подписи JWT;
+- `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` — срок действия access-токена, по умолчанию 60 минут;
 - `NGINX_PORT` и `REGISTRY_PORT` — при необходимости, если стандартные порты заняты.
 
 Файл `.env` исключён из Git и не должен публиковаться.
@@ -242,10 +244,25 @@ GET  http://IP_VPS/health
 Основные endpoints:
 
 - `POST /api/leads` — создать заявку, при необходимости вместе с аналитикой;
-- `GET /api/leads` и `GET /api/leads/{id}` — получить заявки;
-- `PUT` и `DELETE /api/leads/{id}` — изменить или удалить заявку;
-- `POST`, `GET`, `PUT`, `DELETE /api/analytics/{lead_id}` — аналитика заявки;
-- `POST`, `GET`, `PUT`, `DELETE /api/admin-settings/{id}` — настройки услуг и бюджета.
+- `POST /api/leads` — публичное создание заявки с формы сайта;
+- `GET /api/leads`, `GET /api/leads/{id}`, `PUT` и `DELETE /api/leads/{id}` — заявки, только с JWT;
+- `POST`, `GET`, `PUT`, `DELETE /api/analytics/{lead_id}` — аналитика заявки, только с JWT;
+- `GET /api/admin-settings` и `GET /api/admin-settings/{id}` — публичный список услуг для сайта;
+- `POST`, `PUT` и `DELETE /api/admin-settings/{id}` — управление услугами, только с JWT.
+
+### Админ-панель
+
+Админ-панель доступна по адресу `/admin/`. При первом запуске кнопка регистрации позволяет создать единственного первого администратора. После этого публичная регистрация закрывается, а уже авторизованный администратор может добавлять новые учётные записи.
+
+Доступны endpoints авторизации:
+
+- `GET /api/auth/registration-status` — статус первичной регистрации;
+- `POST /api/auth/register` — регистрация первого администратора;
+- `POST /api/auth/login` — получение JWT access-токена;
+- `GET /api/auth/me` — проверка текущей сессии;
+- `POST /api/auth/admins` — добавление администратора из панели.
+
+Токен хранится в `sessionStorage` браузера и действует 60 минут по умолчанию. Пароли хранятся только в виде хешей.
 
 Пример пакета заявки:
 

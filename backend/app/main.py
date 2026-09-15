@@ -5,7 +5,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import check_database, create_tables, get_db
-from app.routers import admin_settings, analytics, leads
+from app.models.admin_user import AdminUser
+from app.routers import admin_settings, analytics, auth, leads
 
 
 @asynccontextmanager
@@ -26,6 +27,7 @@ app = FastAPI(
 app.include_router(leads.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(admin_settings.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
 
 
 @app.get("/health")

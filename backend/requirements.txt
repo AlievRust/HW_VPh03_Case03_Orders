@@ -5,3 +5,4 @@ psycopg[binary]
 pydantic-settings
 pytest
 httpx
+python-jose[cryptography]

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_admin
+from app.models.admin_user import AdminUser
 from app.models.admin_settings import AdminSetting, AdminSettingCRUD
 from app.schemas.admin_settings import (
     AdminSettingCreate,
@@ -16,6 +18,7 @@ router = APIRouter(prefix="/admin-settings", tags=["admin-settings"])
 def create_setting(
     payload: AdminSettingCreate,
     db: Session = Depends(get_db),
+    _admin: AdminUser = Depends(get_current_admin),
 ) -> AdminSetting:
     return AdminSettingCRUD.create(db, payload.model_dump())
 
@@ -42,6 +45,7 @@ def update_setting(
     setting_id: int,
     payload: AdminSettingUpdate,
     db: Session = Depends(get_db),
+    _admin: AdminUser = Depends(get_current_admin),
 ) -> AdminSetting:
     setting = AdminSettingCRUD.get(db, setting_id)
     if setting is None:
