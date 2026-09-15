@@ -56,6 +56,8 @@ Dependency `get_current_admin` проверяет Bearer JWT и активнос
 
 Основной маршрут `/` и публичная загрузка услуг не меняются.
 
+Nginx отдаёт `/admin/` явно из `admin.html` (`location = /admin/`), иначе SPA-fallback `try_files ... /index.html` возвращал бы главную страницу сайта.
+
 ## База данных
 
 Таблицы создаются существующим `Base.metadata.create_all` при старте backend. Миграционная система в проекте отсутствует.

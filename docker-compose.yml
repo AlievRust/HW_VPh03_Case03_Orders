@@ -8,7 +8,9 @@ services:
     volumes:
       - ./frontend/dist:/output
     entrypoint: ["/bin/sh", "-c"]
-    command: ["cp -r /dist/. /output/"]
+    # Каталог dist монтируется поверх, поэтому старые ассеты нужно удалять
+    # до копирования: иначе файлы прошлых сборок накапливаются в dist.
+    command: ["find /output -mindepth 1 -delete && cp -r /dist/. /output/"]
 
   # Единственная точка входа для frontend и внутренних веб-сервисов.
   nginx:
